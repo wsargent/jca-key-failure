@@ -23,48 +23,59 @@ public class JcaKeyFailure {
 
     public static void main(String[] args) throws Exception {
         JcaKeyFailure instance = new JcaKeyFailure();
-        System.out.println(instance.testSystem());
+        instance.testSystem();
     }
 
-  public Key testSystem() throws Exception {
-      // Set our keystore as the system keystore.
-      final char[] password = "".toCharArray();
-      final KeyStore keyStore = generateStore(password);
-      require(keyStore.size() == 2);
-      printAliases(keyStore);
-      final Path tempPath = Files.createTempFile(null, null);
-      keyStore.store(new FileOutputStream(tempPath.toFile()), password);
+    public void testSystem() throws Exception {
+        // Set our keystore as the system keystore.
+        final char[] password = "".toCharArray();
+        final KeyStore keyStore = generateStore(password);
+        require(keyStore.size() == 2);
+        printAliases(keyStore);
 
-      // Now that we've written out the keystore to the filesystem, we can set
-      // some system properties and read it in as the default keystore :-)
-      final Properties properties = new Properties();
-      properties.setProperty("javax.net.ssl.keyStore", tempPath.toAbsolutePath().toString());
-      properties.setProperty("javax.net.ssl.keyStoreType", keyStore.getType());
-      properties.setProperty("javax.net.ssl.keyStorePassword", new String(password));
-      System.setProperties(properties);
-      // Check this got set correctly...
-      require(System.getProperty("javax.net.ssl.keyStore").equals(tempPath.toAbsolutePath().toString()));
+        // Ask for the key... this works fine.
+        final Key rsakey = keyStore.getKey("rsaentry", null);
+        require(rsakey != null);
 
-      /// Now that we have the properties set
-      final KeyStore systemKeyStore = getKeyStore();
-      printAliases(systemKeyStore);
+        // Ask for the entry... this works fine.
+        final KeyStore.ProtectionParameter passwordParam = new KeyStore.PasswordProtection("".toCharArray());
+        final KeyStore.Entry entry = keyStore.getEntry("rsaentry", passwordParam);
+        require(entry != null);
 
-      // This works fine...
-      final Key rsakey = systemKeyStore.getKey("rsaentry", null);
+        // Write the keystore to a file...
+        final Path tempPath = Files.createTempFile(null, null);
+        keyStore.store(new FileOutputStream(tempPath.toFile()), password);
 
-      // This dies with "invalid null input"
-      //      Exception in thread "main" java.lang.NullPointerException: invalid null input
-      //      at java.base/java.security.KeyStore$PrivateKeyEntry.<init>(KeyStore.java:532)
-      //      at java.base/sun.security.pkcs12.PKCS12KeyStore.engineGetEntry(PKCS12KeyStore.java:1346)
-      //      at java.base/sun.security.util.KeyStoreDelegator.engineGetEntry(KeyStoreDelegator.java:166)
-      //      at java.base/java.security.KeyStore.getEntry(KeyStore.java:1548)
-      //      at com.tersesystems.jcakeyfailure.JcaKeyFailure.testSystem(JcaKeyFailure.java:54)
-      //      at com.tersesystems.jcakeyfailure.JcaKeyFailure.main(JcaKeyFailure.java:26)
-      final KeyStore.ProtectionParameter passwordParam = new KeyStore.PasswordProtection("".toCharArray());
-      final KeyStore.Entry rsaentry = systemKeyStore.getEntry("rsaentry", passwordParam);
-      require(rsaentry != null);
-      return rsakey;
-  }
+        // Now that we've written out the keystore to the filesystem, we can set
+        // some system properties and read it in as the default keystore :-)
+        final Properties properties = new Properties();
+        properties.setProperty("javax.net.ssl.keyStore", tempPath.toAbsolutePath().toString());
+        properties.setProperty("javax.net.ssl.keyStoreType", keyStore.getType());
+        properties.setProperty("javax.net.ssl.keyStorePassword", new String(password));
+        System.setProperties(properties);
+        // Check this got set correctly...
+        require(System.getProperty("javax.net.ssl.keyStore").equals(tempPath.toAbsolutePath().toString()));
+
+        /// Now that we have the properties set, let's load up the keystore from the properties...
+        // this works just like the internal JDK 1.8 keystore loading...
+        final KeyStore systemKeyStore = getKeyStore();
+        printAliases(systemKeyStore);
+
+        // This works fine...
+        final Key systemRsaKey = systemKeyStore.getKey("rsaentry", null);
+        require(systemRsaKey != null);
+
+        // This dies with "invalid null input"
+        //      Exception in thread "main" java.lang.NullPointerException: invalid null input
+        //      at java.base/java.security.KeyStore$PrivateKeyEntry.<init>(KeyStore.java:532)
+        //      at java.base/sun.security.pkcs12.PKCS12KeyStore.engineGetEntry(PKCS12KeyStore.java:1346)
+        //      at java.base/sun.security.util.KeyStoreDelegator.engineGetEntry(KeyStoreDelegator.java:166)
+        //      at java.base/java.security.KeyStore.getEntry(KeyStore.java:1548)
+        //      at com.tersesystems.jcakeyfailure.JcaKeyFailure.testSystem(JcaKeyFailure.java:54)
+        //      at com.tersesystems.jcakeyfailure.JcaKeyFailure.main(JcaKeyFailure.java:26)
+        final KeyStore.Entry systemEntry = systemKeyStore.getEntry("rsaentry", passwordParam);
+        require(systemEntry != null);
+    }
 
     private void require(boolean b) {
         if (!b) {
@@ -162,9 +173,9 @@ public class JcaKeyFailure {
         pkcs12.load(null);
 
         pkcs12.setKeyEntry(
-                "rsaentry", rsaKeyPair.getPrivate(), password, new Certificate[] {rsaCertificate});
+                "rsaentry", rsaKeyPair.getPrivate(), password, new Certificate[]{rsaCertificate});
         pkcs12.setKeyEntry(
-                "dsaentry", dsaKeyPair.getPrivate(), password, new Certificate[] {dsaCertificate});
+                "dsaentry", dsaKeyPair.getPrivate(), password, new Certificate[]{dsaCertificate});
 
         return pkcs12;
     }
