@@ -1,0 +1,26 @@
+plugins {
+    id 'java'
+}
+
+group 'com.tersesystems'
+version '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+compileJava {
+    targetCompatibility = "1.8"
+    sourceCompatibility = "1.8"
+}
+
+dependencies {
+    implementation 'com.tersesystems.securitybuilder:securitybuilder:1.0.0'
+
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.0'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.7.0'
+}
+
+test {
+    useJUnitPlatform()
+}
