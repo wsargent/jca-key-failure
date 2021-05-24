@@ -13,10 +13,7 @@ import java.time.Duration;
 import java.io.FileOutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 
 public class JcaKeyFailure {
 
@@ -29,7 +26,7 @@ public class JcaKeyFailure {
         // Set our keystore as the system keystore.
         final char[] password = "".toCharArray();
         final KeyStore keyStore = generateStore(password);
-        require(keyStore.size() == 2);
+        require(keyStore.size() == 1);
         printAliases(keyStore);
 
         // Ask for the key... this works fine.
@@ -63,6 +60,7 @@ public class JcaKeyFailure {
         // This works fine...
         final Key systemRsaKey = systemKeyStore.getKey("rsaentry", null);
         require(systemRsaKey != null);
+        require(Arrays.equals(systemRsaKey.getEncoded(), rsakey.getEncoded()));
 
         // This dies with "invalid null input"
         //      Exception in thread "main" java.lang.NullPointerException: invalid null input
@@ -97,7 +95,7 @@ public class JcaKeyFailure {
         AccessController.doPrivileged(
                 (PrivilegedExceptionAction<Object>)
                         () -> {
-                            props.put("getKeyStore", System.getProperty("javax.net.ssl.keyStore", ""));
+                            props.put("keyStore", System.getProperty("javax.net.ssl.keyStore", ""));
                             props.put(
                                     "keyStoreType",
                                     System.getProperty("javax.net.ssl.keyStoreType", KeyStore.getDefaultType()));
@@ -107,7 +105,7 @@ public class JcaKeyFailure {
                             return null;
                         });
 
-        final String defaultKeyStore = props.get("getKeyStore");
+        final String defaultKeyStore = props.get("keyStore");
         final String defaultKeyStoreType = props.get("keyStoreType");
         final String defaultKeyStoreProvider = props.get("keyStoreProvider");
 
