@@ -9,7 +9,6 @@ import java.nio.file.FileSystems;
 import java.security.*;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
-import java.security.interfaces.DSAPrivateKey;
 import java.time.Duration;
 import java.io.FileOutputStream;
 import java.nio.file.Files;
@@ -153,7 +152,6 @@ public class JcaKeyFailure {
     private KeyStore generateStore(final char[] password)
             throws GeneralSecurityException, IOException {
         final RSAKeyPair rsaKeyPair = (KeyPairCreator.creator().withRSA().withKeySize(2048).create());
-        final DSAKeyPair dsaKeyPair = (KeyPairCreator.creator().withDSA().withKeySize(1024).create());
 
         final X509Certificate rsaCertificate =
                 X509CertificateCreator.creator()
@@ -162,20 +160,11 @@ public class JcaKeyFailure {
                         .withRootCA("CN=example.com", rsaKeyPair, 2)
                         .create();
 
-        final X509Certificate dsaCertificate =
-                X509CertificateCreator.creator()
-                        .<DSAPrivateKey>withSignatureAlgorithm("SHA256withDSA")
-                        .withDuration(Duration.ofDays(365))
-                        .withRootCA("CN=example.com", dsaKeyPair, 2)
-                        .create();
-
         final KeyStore pkcs12 = KeyStore.getInstance(KeyStore.getDefaultType());
         pkcs12.load(null);
 
         pkcs12.setKeyEntry(
                 "rsaentry", rsaKeyPair.getPrivate(), password, new Certificate[]{rsaCertificate});
-        pkcs12.setKeyEntry(
-                "dsaentry", dsaKeyPair.getPrivate(), password, new Certificate[]{dsaCertificate});
 
         return pkcs12;
     }
