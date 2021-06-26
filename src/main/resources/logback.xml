@@ -1,0 +1,86 @@
+<configuration>
+
+    <!-- set up the slf4jBridgeHandler action -->
+    <newRule pattern="configuration/slf4jBridgeHandler"
+             actionClass="com.tersesystems.logback.classic.SLF4JBridgeHandlerAction"/>
+
+    <!-- loosen rule to include for encoders as well as just top level -->
+    <newRule pattern="*/include"
+             actionClass="ch.qos.logback.core.joran.action.IncludeAction"/>
+
+    <!-- loosen the rule on appender refs so appenders can reference them -->
+    <newRule pattern="*/appender/appender-ref"
+             actionClass="ch.qos.logback.core.joran.action.AppenderRefAction"/>
+
+    <!-- give the async appenders time to shutdown -->
+    <shutdownHook class="ch.qos.logback.core.hook.DelayingShutdownHook">
+        <delay>100</delay>
+    </shutdownHook>
+
+    <!-- calls removeHandlersForRootLogger / install -->
+    <slf4jBridgeHandler/>
+
+    <!-- reset all previous level configurations of all j.u.l. loggers -->
+    <contextListener class="ch.qos.logback.classic.jul.LevelChangePropagator">
+        <resetJUL>true</resetJUL>
+    </contextListener>
+
+    <conversionRule conversionWord="nanoTime" converterClass="com.tersesystems.logback.classic.NanoTimeConverter" />
+    <conversionRule conversionWord="uniqueId" converterClass="com.tersesystems.logback.uniqueid.UniqueIdConverter" />
+    <conversionRule conversionWord="tse" converterClass="com.tersesystems.logback.classic.TimeSinceEpochConverter" />
+
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%uniqueId %date{H:mm:ss.SSS} [%highlight(%-5level)] %logger{15} -  %message%ex%n</pattern>
+        </encoder>
+        <withJansi>true</withJansi>
+    </appender>
+
+    <appender name="JSON" class="ch.qos.logback.core.FileAppender">
+        <file>logs/application.ndjson</file>
+        <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+            <jsonGeneratorDecorator class="net.logstash.logback.decorate.PrettyPrintingJsonGeneratorDecorator"/>
+            <providers>
+                <pattern>
+                    <pattern>
+                        {
+                        "id": "%uniqueId",
+                        "relative_ns": "#asLong{%nanoTime}",
+                        "tse_ms": "#asLong{%tse}"
+                        }
+                    </pattern>
+                </pattern>
+                <timestamp>
+                    <timeZone>UTC</timeZone>
+                </timestamp>
+                <version/>
+                <message/>
+                <loggerName/>
+                <threadName/>
+                <logLevel/>
+                <logLevelValue/><!-- numeric value is useful for filtering >= -->
+                <stackHash/>
+                <mdc/>
+                <logstashMarkers/>
+                <arguments/>
+                <stackTrace/>
+            </providers>
+        </encoder>
+    </appender>
+
+    <!-- the instrumented classes must be set to TRACE level -->
+    <logger name="java.security" level="TRACE"/>
+    <logger name="sun.security" level="TRACE"/>
+
+    <!-- Libraries should use INFO generally -->
+    <!-- change this to TRACE to see all the JUL statements in java.net / java.security -->
+    <root level="INFO">
+        <appender class="com.tersesystems.logback.uniqueid.UniqueIdComponentAppender">
+            <appender class="com.tersesystems.logback.classic.NanoTimeComponentAppender">
+                <appender-ref ref="CONSOLE"/>
+                <appender-ref ref="JSON"/>
+            </appender>
+        </appender>
+    </root>
+
+</configuration>

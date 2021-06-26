@@ -1,5 +1,6 @@
 plugins {
     id 'java'
+    id 'application'
 }
 
 group 'com.tersesystems'
@@ -9,13 +10,21 @@ repositories {
     mavenCentral()
 }
 
-compileJava {
-    targetCompatibility = "1.8"
-    sourceCompatibility = "1.8"
-}
-
 dependencies {
-    implementation 'com.tersesystems.securitybuilder:securitybuilder:1.0.0'
+
+    implementation group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.3'
+    implementation group: 'org.fusesource.jansi', name: 'jansi', version: '2.3.2'
+    implementation group: 'net.logstash.logback', name: 'logstash-logback-encoder', version: '6.6'
+
+    implementation group: 'com.tersesystems.logback', name: 'logback-classic', version: '1.0.0'
+    implementation group: 'com.tersesystems.logback', name: 'logback-uniqueid-appender', version: '1.0.0'
+    implementation group: 'com.tersesystems.logback', name: 'logback-bytebuddy', version: '1.0.0'
+    implementation group: 'com.tersesystems.logback', name: 'logback-tracing', version: '1.0.0'
+
+    implementation group: 'net.bytebuddy', name: 'byte-buddy', version: '1.11.5'
+    implementation group: 'org.ow2.asm', name: 'asm', version: '9.1'
+
+    implementation 'com.tersesystems.securitybuilder:securitybuilder:1.0.1'
 
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.0'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.7.0'
@@ -23,4 +32,14 @@ dependencies {
 
 test {
     useJUnitPlatform()
+}
+
+application {
+    mainClassName = 'com.tersesystems.jcakeyfailure.JcaKeyFailure'
+    // '-Xdebug',
+    // '-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005',
+    applicationDefaultJvmArgs = [
+            '-javaagent:lib/logback-bytebuddy-1.0.0.jar=debug',
+            '-Djava.security.debug=pkcs12,keystore'
+    ]
 }

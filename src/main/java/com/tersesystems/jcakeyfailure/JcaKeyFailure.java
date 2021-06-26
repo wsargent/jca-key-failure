@@ -1,13 +1,15 @@
 package com.tersesystems.jcakeyfailure;
 
 import com.tersesystems.securitybuilder.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.PrintStream;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.security.*;
-import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 import java.time.Duration;
 import java.io.FileOutputStream;
@@ -16,10 +18,19 @@ import java.nio.file.Path;
 import java.util.*;
 
 public class JcaKeyFailure {
+    private static final Logger logger = LoggerFactory.getLogger(JcaKeyFailure.class);
 
     public static void main(String[] args) throws Exception {
+        logger.info("Starting Logback");
+        FileOutputStream f = new FileOutputStream("/dev/null");
+        System.setErr(new PrintStream(f, true));
+
         JcaKeyFailure instance = new JcaKeyFailure();
-        instance.testSystem();
+        try {
+            instance.testSystem();
+        } catch (Exception e) {
+            logger.error("Instance failed with exception!", e);
+        }
     }
 
     public void testSystem() throws Exception {
@@ -54,7 +65,7 @@ public class JcaKeyFailure {
 
         /// Now that we have the properties set, let's load up the keystore from the properties...
         // this works just like the internal JDK 1.8 keystore loading...
-        final KeyStore systemKeyStore = getKeyStore();
+        final KeyStore systemKeyStore = KeyStoreDefaults.getKeyStore();
         printAliases(systemKeyStore);
 
         // This works fine...
@@ -84,7 +95,7 @@ public class JcaKeyFailure {
         final Enumeration<String> aliases = keyStore1.aliases();
         while (aliases.hasMoreElements()) {
             String s = aliases.nextElement();
-            System.out.println(s);
+            logger.info("alias = " + s);
         }
     }
 
@@ -161,8 +172,8 @@ public class JcaKeyFailure {
         final KeyStore pkcs12 = KeyStore.getInstance(KeyStore.getDefaultType());
         pkcs12.load(null);
 
-        pkcs12.setKeyEntry(
-                "rsaentry", rsaKeyPair.getPrivate(), password, new Certificate[]{rsaCertificate});
+        final X509Certificate[] certs = {rsaCertificate};
+        pkcs12.setKeyEntry("rsaentry", rsaKeyPair.getPrivate(), password, certs);
 
         return pkcs12;
     }
