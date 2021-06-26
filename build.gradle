@@ -39,7 +39,6 @@ application {
     // '-Xdebug',
     // '-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005',
     applicationDefaultJvmArgs = [
-            "-javaagent:lib/logback-bytebuddy-${terseLogback}.jar=debug",
-            '-Djava.security.debug=pkcs12,keystore'
+        "-javaagent:lib/logback-bytebuddy-${terseLogback}.jar"
     ]
 }
